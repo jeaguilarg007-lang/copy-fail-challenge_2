@@ -1,6 +1,6 @@
+cat << 'EOF' > scripts/03_run_qemu.sh
 #!/usr/bin/env bash
-scripts/03_run_qemu.sh
-Arranca la VM vulnerable en QEMU (modo consola serial)
+# Arranca la VM vulnerable en QEMU (modo consola serial)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,7 +10,7 @@ BUILD_DIR="$WORKSPACE_ROOT/kernel/build"
 BZIMAGE="$BUILD_DIR/bzImage_vuln"
 INITRAMFS="$BUILD_DIR/initramfs.cpio.gz"
 
-ID del estudiante para el hostname de la VM
+# ID del estudiante para el hostname de la VM
 STUDENT_ID="${STUDENT_ID:-$(git config user.name 2>/dev/null | tr ' ' '-' | tr -cd '[:alnum:]-' | head -c 16)}"
 STUDENT_ID="${STUDENT_ID:-unknown}"
 
@@ -20,18 +20,18 @@ CYAN='\033[1;36m'
 NC='\033[0m'
 
 if [ ! -f "$BZIMAGE" ]; then
-  echo -e "${RED}Error: $BZIMAGE no existe. Ejecuta primero: make kernel${NC}"
+  echo -e "${RED}Error: $BZIMAGE no existe. Ejecuta primero: make setup o make kernel${NC}"
   exit 1
 fi
 
 if [ ! -f "$INITRAMFS" ]; then
-  echo -e "${RED}Error: $INITRAMFS no existe. Ejecuta primero: make rootfs${NC}"
+  echo -e "${RED}Error: $INITRAMFS no existe. Ejecuta primero: make setup o make rootfs${NC}"
   exit 1
 fi
 
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  Arrancando VM vulnerable — CVE-2026-31431                  ║${NC}"
-echo -e "${GREEN}║  Salir de QEMU: Ctrl+A  luego  X                            ║${NC}"
+echo -e "${GREEN}║   Arrancando VM vulnerable — CVE-2026-31431                  ║${NC}"
+echo -e "${GREEN}║   Salir de QEMU: Ctrl+A  luego  X                            ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "  STUDENT_ID: ${CYAN}${STUDENT_ID}${NC}"
@@ -48,7 +48,7 @@ exec qemu-system-x86_64 \
   -m 2048M \
   -smp "$(nproc)" \
   -enable-kvm 2>/dev/null || \
-qemu-system-x86_64 \
+exec qemu-system-x86_64 \
   -nographic \
   -no-reboot \
   -kernel "$BZIMAGE" \
@@ -56,3 +56,4 @@ qemu-system-x86_64 \
   -append "console=ttyS0 init=/bin/sh quiet STUDENT_ID=${STUDENT_ID}" \
   -m 2048M \
   -smp 4
+EOF
