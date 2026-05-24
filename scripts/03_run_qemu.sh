@@ -1,15 +1,25 @@
+cat << 'EOF' > scripts/03_run_qemu.sh
 #!/usr/bin/env bash
 # Arranca la VM vulnerable en QEMU (modo consola serial)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_DIR="$WORKSPACE_ROOT/kernel/build"
+KERNEL_DIR="$WORKSPACE_ROOT/kernel"
+BUILD_DIR="$KERNEL_DIR/build"
+INITRAMFS_SRC="$KERNEL_DIR/initramfs"
+
+# Asegurar que el directorio build exista
+mkdir -p "$BUILD_DIR"
+
+echo "Empaquetando initramfs de forma directa..."
+cd "$INITRAMFS_SRC"
+find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9 > "$BUILD_DIR/initramfs.cpio.gz"
+cd "$WORKSPACE_ROOT"
 
 BZIMAGE="$BUILD_DIR/bzImage_vuln"
 INITRAMFS="$BUILD_DIR/initramfs.cpio.gz"
 
-# ID del estudiante para el hostname de la VM
 STUDENT_ID="${STUDENT_ID:-$(git config user.name 2>/dev/null | tr ' ' '-' | tr -cd '[:alnum:]-' | head -c 16)}"
 STUDENT_ID="${STUDENT_ID:-unknown}"
 
@@ -18,35 +28,12 @@ GREEN='\033[1;32m'
 CYAN='\033[1;36m'
 NC='\033[0m'
 
-if [ ! -f "$BZIMAGE" ]; then
-  echo -e "${RED}Error: $BZIMAGE no existe. Ejecuta primero: make setup o make kernel${NC}"
-  exit 1
-fi
-
-if [ ! -f "$INITRAMFS" ]; then
-  echo -e "${RED}Error: $INITRAMFS no existe. Ejecuta primero: make setup o make rootfs${NC}"
-  exit 1
-fi
-
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║   Arrancando VM vulnerable — CVE-2026-31431                  ║${NC}"
 echo -e "${GREEN}║   Salir de QEMU: Ctrl+A  luego  X                            ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  STUDENT_ID: ${CYAN}${STUDENT_ID}${NC}"
-echo -e "  Kernel:     ${CYAN}${BZIMAGE}${NC}"
-echo -e "  Initramfs:  ${CYAN}${INITRAMFS}${NC}"
-echo ""
 
-exec qemu-system-x86_64 \
-  -nographic \
-  -no-reboot \
-  -kernel "$BZIMAGE" \
-  -initrd "$INITRAMFS" \
-  -append "console=ttyS0 init=/bin/sh quiet STUDENT_ID=${STUDENT_ID}" \
-  -m 2048M \
-  -smp "$(nproc)" \
-  -enable-kvm 2>/dev/null || \
 exec qemu-system-x86_64 \
   -nographic \
   -no-reboot \
@@ -55,3 +42,4 @@ exec qemu-system-x86_64 \
   -append "console=ttyS0 init=/bin/sh quiet STUDENT_ID=${STUDENT_ID}" \
   -m 2048M \
   -smp 4
+EOF
