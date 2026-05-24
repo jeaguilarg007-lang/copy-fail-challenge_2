@@ -1,4 +1,3 @@
-cat << 'EOF' > scripts/03_run_qemu.sh
 #!/usr/bin/env bash
 # Arranca la VM vulnerable en QEMU (modo consola serial)
 set -euo pipefail
@@ -56,4 +55,3 @@ exec qemu-system-x86_64 \
   -append "console=ttyS0 init=/bin/sh quiet STUDENT_ID=${STUDENT_ID}" \
   -m 2048M \
   -smp 4
-EOF
